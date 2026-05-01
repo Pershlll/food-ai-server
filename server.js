@@ -8,64 +8,63 @@ app.use(cors());
 
 const upload = multer();
 
-const API_KEY = process.env.OPENAI_API_KEY;
+const API_KEY = process.env.GEMINI_API_KEY;
 
 app.post("/analyze", upload.single("image"), async (req, res) => {
   try {
     const base64 = req.file.buffer.toString("base64");
     const mimeType = req.file.mimetype || "image/jpeg";
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        max_tokens: 300,
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:${mimeType};base64,${base64}`,
-                  detail: "low",
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  inline_data: {
+                    mime_type: mimeType,
+                    data: base64,
+                  },
                 },
-              },
-              {
-                type: "text",
-                text: `Look at this food image and identify the food items. 
-Return ONLY a JSON array of English food names, nothing else.
+                {
+                  text: `Look at this food image and identify the food items.
+Return ONLY a JSON array of English food names, nothing else, no markdown.
 Example: ["chicken breast", "rice", "broccoli"]
 List up to 5 items. Be specific (e.g. "salmon" not "fish", "oatmeal" not "cereal").
 If you cannot identify food, return: ["unknown"]`,
-              },
-            ],
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.1,
+            maxOutputTokens: 200,
           },
-        ],
-      }),
-    });
+        }),
+      }
+    );
 
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("OpenAI error:", data);
-      return res.status(500).json({ error: data.error?.message || "OpenAI error" });
+      console.error("Gemini error:", JSON.stringify(data));
+      return res.status(500).json({ error: data.error?.message || "Gemini error" });
     }
 
-    const content = data.choices[0].message.content.trim();
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if (!content) {
+      return res.status(500).json({ error: "Empty response from Gemini" });
+    }
 
-    // Парсим JSON из ответа
     let foods = [];
     try {
-      // Убираем возможные markdown блоки ```json ... ```
       const clean = content.replace(/```json|```/g, "").trim();
       foods = JSON.parse(clean);
     } catch (e) {
-      // Если не распарсилось — вытаскиваем слова вручную
       foods = content
         .replace(/[\[\]"]/g, "")
         .split(",")
