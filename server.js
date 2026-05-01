@@ -8,7 +8,7 @@ app.use(cors());
 
 const upload = multer();
 
-// 🔑 ВСТАВЬ СЮДА СВОЙ КЛЮЧ
+// Ваш новый Personal Access Token (PAT)
 const API_KEY = "c23285902351402083b41e3dd0103354";
 
 app.post("/analyze", upload.single("image"), async (req, res) => {
@@ -20,7 +20,7 @@ app.post("/analyze", upload.single("image"), async (req, res) => {
       {
         method: "POST",
         headers: {
-          Authorization: `Key ${API_KEY}`,
+          Authorization: `Bearer ${API_KEY}`, // ← изменено с Key на Bearer
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
