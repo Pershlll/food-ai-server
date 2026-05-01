@@ -9,7 +9,7 @@ app.use(cors());
 const upload = multer();
 
 // 🔑 ВСТАВЬ СЮДА СВОЙ КЛЮЧ
-const API_KEY = "PASTE_YOUR_CLARIFAI_KEY_HERE";
+const API_KEY = "c23285902351402083b41e3dd0103354";
 
 app.post("/analyze", upload.single("image"), async (req, res) => {
   try {
