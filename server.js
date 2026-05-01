@@ -2,19 +2,19 @@ import express from "express";
 import multer from "multer";
 import fetch from "node-fetch";
 import cors from "cors";
- 
+
 const app = express();
 app.use(cors());
- 
+
 const upload = multer();
- 
-const API_KEY = "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";
- 
+
+const API_KEY = process.env.OPENAI_API_KEY;
+
 app.post("/analyze", upload.single("image"), async (req, res) => {
   try {
     const base64 = req.file.buffer.toString("base64");
     const mimeType = req.file.mimetype || "image/jpeg";
- 
+
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -48,16 +48,16 @@ If you cannot identify food, return: ["unknown"]`,
         ],
       }),
     });
- 
+
     const data = await response.json();
- 
+
     if (!response.ok) {
       console.error("OpenAI error:", data);
       return res.status(500).json({ error: data.error?.message || "OpenAI error" });
     }
- 
+
     const content = data.choices[0].message.content.trim();
- 
+
     // Парсим JSON из ответа
     let foods = [];
     try {
@@ -73,15 +73,14 @@ If you cannot identify food, return: ["unknown"]`,
         .filter(Boolean)
         .slice(0, 5);
     }
- 
+
     res.json({ foods });
   } catch (e) {
     console.error("Server error:", e);
     res.status(500).json({ error: "Ошибка сервера" });
   }
 });
- 
+
 app.get("/", (req, res) => res.send("Food AI Server running ✅"));
- 
+
 app.listen(3000, () => console.log("Server running on port 3000"));
- 
